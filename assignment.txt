@@ -1,50 +1,25 @@
----
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
----
+require(ggplot2)
+require(sqldf)
+require(dplyr)
 
+## data
+activities <- read.csv("Programming assignments\\reproducible_research_1\\activity.csv");
 
-## Loading and preprocessing the data
+## First plot:
 
-```{r, echo=TRUE}
-library(ggplot2)
-library(sqldf)
-library(gridExtra)
-
-activities <- read.csv("activity.csv");
-
-head(activities)
-
-```
-
-## What is mean total number of steps taken per day?
-
-
-```{r, echo=TRUE}
 dailyTotalSteps <- sqldf("SELECT date, sum(steps) as totalSteps, avg(steps) as avgSteps from activities where steps != 'NA' group by date")
 
-head(dailyTotalSteps)
-```
-
-```{r histogram, fig.height=4}
 hist(dailyTotalSteps$totalSteps, breaks = 30, xlab = "Number of steps", main = "Total number of steps by day")
 abline(v = mean(dailyTotalSteps$totalSteps), col = "blue", lwd = 1)
-```
 
-## What is the average daily activity pattern?
+## Second plot:
 
-```{r, echo=TRUE}
 dailyAverageSteps <- sqldf("SELECT interval, avg(steps) as avgSteps from activities where steps != 'NA' group by interval")
-```
-```{r scatterplot, fig.height=4}
+
 qplot(interval, avgSteps, data=dailyAverageSteps, geom="line", main="Time series of average steps per activity", xlab = "Interval", ylab = "Average number of steps")
-```
 
-## Imputing missing values
+## Cleaning the data
 
-```{r, echo=TRUE}
 cleanedActivities <- activities
 for (row in 1:nrow(cleanedActivities)) {
 	if (is.na(cleanedActivities[row,"steps"])) {
@@ -54,19 +29,15 @@ for (row in 1:nrow(cleanedActivities)) {
 	}
 }
 
-head(cleanedActivities)
-```
+## Total number of steps each day with cleaned up/enriched data, create a histogram
 
-```{r histogram2, echo=TRUE}
 dailyTotalCleanedSteps <- sqldf("SELECT date, sum(steps) as totalSteps, avg(steps) as avgSteps from cleanedActivities where steps != 'NA' group by date")
 
-hist(dailyTotalCleanedSteps$totalSteps, breaks = 30, xlab = "Number of steps", main = "Total number of steps by day (inluding imputing missing)")
+hist(dailyTotalCleanedSteps$totalSteps, breaks = 30, xlab = "Number of steps", main = "Total number of steps by day")
 abline(v = mean(dailyTotalCleanedSteps$totalSteps), col = "blue", lwd = 1)
-```
 
-## Are there differences in activity patterns between weekdays and weekends?
+## Compare weekdays to weekend
 
-```{r, echo=TRUE}
 cleanedActivities$weekday <- as.factor(ifelse(weekdays(as.Date(as.character(cleanedActivities$date))) %in% 
                                     c("Saturday","Sunday"),"weekend", "weekday"))
 
@@ -81,16 +52,9 @@ weekday <- sqldf("SELECT interval, avg(steps) as avgSteps, weekday
     WHERE weekday = 'weekday'
       GROUP BY weekday, interval
       ORDER BY interval")
-
-head(weekend)
-head(weekday)
-
-```      
-
-```{r weekdayplot, fig.height=4}
+      
 plot1 <- qplot(interval, avgSteps, data=weekend, geom="line", main="Time series of average steps per activity during weekends", xlab = "Interval", ylab = "Average number of steps")
 
 plot2 <- qplot(interval, avgSteps, data=weekday, geom="line", main="Time series of average steps per activity during weekdays", xlab = "Interval", ylab = "Average number of steps")
 
 grid.arrange(plot1, plot2)
-```
